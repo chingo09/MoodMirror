@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+env/
+venv/
+*.sqlite3
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# macOS / Windows system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# AWS CLI cache
+.aws/
+
+# Python virtual environments (optional)
+pip-wheel-metadata/
+
+# Docker
+*.pid
+*.tar
