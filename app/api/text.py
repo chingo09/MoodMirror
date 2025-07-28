@@ -15,7 +15,6 @@ def submit_text_entries():
         return jsonify({"error": "No text provided"}), 400
     
     results = analyzeEmotion(text_entry)
-    
     insert_data = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
@@ -47,4 +46,29 @@ def get_text_entries(user_id):
         
     return jsonify({"data": response.data}), 200
         
+@text.route('/<string:entry_id>', methods=['PUT'])
+def update_text_entry(entry_id):
+    data = request.get_json()
+    new_text = data.get('text')
     
+    if not new_text:
+        return jsonify({"error":"No text provided"}), 400
+    
+    results = analyzeEmotion(new_text)
+    
+    update_data = {
+        "original_text": new_text,
+        "dominant_emotion": results["dominant_emotion"],
+        "emotion_scores": results["emotion_scores"],
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        response = supabase.table('text_entries').update(update_data).eq('id', entry_id).execute()
+        
+        if response.data is None:
+            return jsonify ({"error":"Failed to update entry"}), 500
+    except Exception as e:
+        return jsonify({"error":"Failed to update entry", "details": str(e)}), 500
+    
+    return jsonify({"message":"Entry updated", "results": results}), 200
