@@ -7,3 +7,5 @@ psycopg2-binary
 sqlalchemy
 matplotlib
 python-dotenv
+transformers
+torch
