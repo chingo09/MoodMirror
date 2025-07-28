@@ -7,7 +7,7 @@ from datetime import datetime
 text = Blueprint('text', __name__)
 
 @text.route('/', methods=['POST'])
-def submit():
+def submit_text_entries():
     data = request.get_json()
     text_entry = data.get('text')
     user_id = data.get('user_id', 'anonymous')
@@ -30,11 +30,21 @@ def submit():
         response = supabase.table('text_entries').insert(insert_data).execute()
         
         if response.data is None:
-            return jsonify({"error": "Failed to save entry"}), 500
+            return jsonify({"error": "Failed to save entries"}), 500
     except Exception as e:
-        return jsonify({"error": "Failed to save entry", "details": str(e)}), 500
+        return jsonify({"error": "Failed to save entries", "details": str(e)}), 500
     
     return jsonify({"message": "Entry saved", "results": results}), 201
- 
+
+@text.route('/<string:user_id>', methods=['GET'])
+def get_text_entries(user_id):
+    try:
+        response = supabase.table('text_entries').select('*').eq('user_id', user_id).order("created_at", desc=True).execute()
+        if response.data is None:
+            return jsonify({"error": "Failed to retrieve entries"}), 500
+    except Exception as e:
+        return jsonify({"error": "Failed to retrieve entries", "details": str(e)})
+        
+    return jsonify({"data": response.data}), 200
         
     
