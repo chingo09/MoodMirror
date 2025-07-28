@@ -16,6 +16,24 @@ def submit():
     
     results = analyzeEmotion(text_entry)
     
+    insert_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "source": "text",
+        "original_text": text_entry,
+        "dominant_emotion": results["dominant_emotion"],
+        "emotion_scores": results ["emotion_scores"],
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        response = supabase.table('text_entries').insert(insert_data).execute()
+        
+        if response.data is None:
+            return jsonify({"error": "Failed to save entry"}), 500
+    except Exception as e:
+        return jsonify({"error": "Failed to save entry", "details": str(e)}), 500
+    
     return jsonify({"message": "Entry saved", "results": results}), 201
  
         
