@@ -144,3 +144,20 @@ def update_text_entry(entry_id):
         return jsonify({"error":"Failed to update entry", "details": str(e)}), 500
     
     return jsonify({"message":"Entry updated", "results": results}), 200
+
+# Delete a journal entry and its updates
+@text.route('/<string:entry_id>', methods=['DELETE'])
+def delete_journal(entry_id):
+    try:
+        # Delete all updates linked to this entry
+        supabase.table('text_updates').delete().eq('entry_id', entry_id).execute()
+
+        # Delete the journal entry itself
+        response = supabase.table('text_entries').delete().eq('id', entry_id).execute()
+
+        if response.data is None:
+            return jsonify({"error": "Entry not found or could not be deleted"}), 404
+    except Exception as e:
+        return jsonify({"error": "Failed to delete entry", "details": str(e)}), 500
+
+    return jsonify({"message": "Journal and its updates deleted successfully"}), 200
