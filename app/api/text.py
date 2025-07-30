@@ -43,7 +43,7 @@ def submit_text_entries():
     return jsonify({"message": "Journal entry created", "entry_id": entry_id, "results": results}), 201
 
 # Get all journal entries for a user
-@text.route('/<string:user_id>/full', methods=['GET'])
+@text.route('/user/<string:user_id>/full', methods=['GET'])
 def get_all_full_journals(user_id):
     try:
         # Get all journal entries by the user
@@ -93,30 +93,30 @@ def get_entry_history(entry_id):
 
     return jsonify({"entry history": response.data}), 200
 
-# Get full journal entry with updates
-@text.route('/<string:entry_id>/full', methods=['GET'])
+@text.route('/journal/<string:entry_id>/full', methods=['GET'])
 def get_full_journal(entry_id):
     try:
-        # Fetch the journal entry
+        entry_id = entry_id.strip()
+        print("🔍 Looking for entry_id:", entry_id)
+
         journal = supabase.table('text_entries').select('*').eq('id', entry_id).execute()
+        print("📄 Query result:", journal.data)
+
         if not journal.data:
             return jsonify({"error": "Journal entry not found"}), 404
-        # Fetch all updates for this journal entry
+
         updates = supabase.table('text_updates').select('*').eq('entry_id', entry_id).order("created_at").execute()
-        if updates.data is None or len(updates.data) == 0:
-            return jsonify({
-                "entry": journal.data,
-                "updates": [],
-                "message": "No updates found for this journal entry"
-            }), 200
-            
+        print("📝 Update results:", updates.data)
+
         return jsonify({
-            "entry": journal.data,
-            "updates": updates.data
+            "entry": journal.data[0],
+            "updates": updates.data or [],
+            "message": "Success" if updates.data else "No updates found"
         }), 200
+
     except Exception as e:
         return jsonify({"error": "Failed to retrieve journal", "details": str(e)}), 500
- 
+
  # Update a text entry       
 @text.route('/<string:entry_id>', methods=['PUT'])
 def update_text_entry(entry_id):
