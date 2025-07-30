@@ -150,7 +150,7 @@ def update_audio_entry(entry_id):
     except Exception as e:
         return jsonify({"error":"Failed to update audio entry", "details": str(e)}), 500
         
-@audio.route('/<string:entry_id>', methods=['DELETE'])
+@audio.route('/<string:entry_id>/full', methods=['DELETE'])
 def delete_audio_entry(entry_id):
     try:
         # Delete all updates linked to this entry
@@ -167,3 +167,19 @@ def delete_audio_entry(entry_id):
             return jsonify({"message": "Audio updates deleted, but entry still has text updates"}),200
     except Exception as e:
         return jsonify({"error": "Failed to delete audio updates", "details": str(e)}), 500
+    
+
+@audio.route('/<string:update_id>/one', methods=['DELETE'])
+def delete_audio_by_id(update_id):
+    try:
+        result = supabase.table('text_updates').select('*').eq('id', update_id).eq('source', 'audio').execute()
+        if not result.data:
+            return jsonify({"message": "Audio not found"}), 404
+        
+        # Delete the specific audio update
+        response = supabase.table('text_updates').delete().eq('id', update_id).eq('source', 'audio').execute()
+        return jsonify({"message":"Audio deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to delete audio", "details": str(e)}), 500
+         
+       

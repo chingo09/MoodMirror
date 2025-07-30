@@ -146,7 +146,7 @@ def update_text_entry(entry_id):
     return jsonify({"message":"Entry updated", "results": results}), 200
 
 # Delete a journal entry and its updates
-@text.route('/<string:entry_id>', methods=['DELETE'])
+@text.route('/<string:entry_id>/journal', methods=['DELETE'])
 def delete_journal(entry_id):
     try:
         # Delete all updates linked to this entry
@@ -161,3 +161,17 @@ def delete_journal(entry_id):
         return jsonify({"error": "Failed to delete entry", "details": str(e)}), 500
 
     return jsonify({"message": "Journal and its updates deleted successfully"}), 200
+
+# Delete a specific text update
+@text.route('/<string:update_id>/one', methods=['DELETE'])
+def delete_text_by_id(update_id):
+    try:
+        result = supabase.table('text_updates').select('*').eq('id', update_id).eq('source', 'text').execute()
+        if not result.data:
+            return jsonify({"message": "Text not found"}), 404
+        
+        # Delete the specific audio update
+        response = supabase.table('text_updates').delete().eq('id', update_id).eq('source', 'text').execute()
+        return jsonify({"message":"Text deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to delete text", "details": str(e)}), 500
