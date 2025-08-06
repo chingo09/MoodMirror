@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from app.services.audioTranscription import transcribe_audio
 from app.services.emotionAnalysis import analyzeEmotion
+from app.services.uploadService import delete_from_s3
 from app.services.uploadService import upload_to_s3
 from app.config.db import supabase
 import uuid
@@ -76,6 +77,7 @@ def submit_audio_entries():
     except Exception as e:
         return jsonify({"error":"Failed to save audio entry", "details": str(e)}), 500
 
+# Get all audio entries
 @audio.route('/<string:entry_id>/full', methods=['GET'])
 def get_full_audio_entry(entry_id):
     try:
@@ -95,6 +97,7 @@ def get_full_audio_entry(entry_id):
     except Exception as e: 
         return jsonify({"error":"Failed to retrieve audio entry", "details": str(e)}), 500
 
+# Update an existing audio entry
 @audio.route('/<string:entry_id>', methods=['PUT'])
 def update_audio_entry(entry_id):
     try:
@@ -149,10 +152,20 @@ def update_audio_entry(entry_id):
         
     except Exception as e:
         return jsonify({"error":"Failed to update audio entry", "details": str(e)}), 500
-        
+
+# Delete all audio updates     
 @audio.route('/<string:entry_id>/full', methods=['DELETE'])
 def delete_audio_entry(entry_id):
     try:
+        # Get all audio updates to delete
+        updates = supabase.table('text_updates').select('*').eq('entry_id', entry_id).eq('source', 'audio').execute()
+        
+        # Delete each S3 file
+        for update in updates.data:
+            audio_url = update.get('audio_url')
+            if audio_url:
+                delete_from_s3(audio_url)
+
         # Delete all updates linked to this entry
         supabase.table('text_updates').delete().eq('entry_id', entry_id).eq('source', 'audio').execute()
         
@@ -168,7 +181,7 @@ def delete_audio_entry(entry_id):
     except Exception as e:
         return jsonify({"error": "Failed to delete audio updates", "details": str(e)}), 500
     
-
+# Delete a specific audio update
 @audio.route('/<string:update_id>/one', methods=['DELETE'])
 def delete_audio_by_id(update_id):
     try:
@@ -176,10 +189,30 @@ def delete_audio_by_id(update_id):
         if not result.data:
             return jsonify({"message": "Audio not found"}), 404
         
-        # Delete the specific audio update
-        response = supabase.table('text_updates').delete().eq('id', update_id).eq('source', 'audio').execute()
-        return jsonify({"message":"Audio deleted successfully"}), 200
+        audio_entry = result.data[0]
+        audio_url = audio_entry.get('audio_url')
+        entry_id = audio_entry.get('entry_id')
+
+        if not audio_url:
+            return jsonify({"error": "Audio URL not found"}), 404
+        
+        # Delete the file from S3
+        s3_deleted = delete_from_s3(audio_url)
+        if not s3_deleted:
+            return jsonify({"error": "Failed to delete audio file from S3"}), 500
+        
+        # Delete the audio update from Supabase
+        supabase.table('text_updates').delete().eq('id', update_id).eq('source', 'audio').execute()
+
+        # Check if any audio updates remain for this entry
+        remaining_updates = supabase.table('text_updates').select('id').eq('entry_id', entry_id).execute()
+
+        if not remaining_updates.data:
+            # If no more audio updates, delete the entry itself
+            supabase.table('text_entries').delete().eq('id', entry_id).execute()
+            return jsonify({"message": "Audio update and journal entry deleted"}), 200
+        else:
+            return jsonify({"message": "Audio update deleted; journal entry still has other updates"}), 200
+
     except Exception as e:
         return jsonify({"error": "Failed to delete audio", "details": str(e)}), 500
-         
-       
