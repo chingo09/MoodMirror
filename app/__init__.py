@@ -4,12 +4,14 @@ from flask_cors import CORS
 def create_app():
     app = Flask(__name__)
     
-    CORS(app) 
+    CORS(app, supports_credentials=True, origins=["http://localhost:5173"]) 
     
     from app.api.text import text
     app.register_blueprint(text, url_prefix='/api/text')
     from app.api.audio import audio
     app.register_blueprint(audio, url_prefix='/api/audio')
+    from app.api.gptAdvice import gptAdvice
+    app.register_blueprint(gptAdvice, url_prefix='/api/gpt')
     
         # ✅ Print all registered routes
     print("\nRegistered routes:")

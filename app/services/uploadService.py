@@ -19,3 +19,22 @@ def upload_to_s3(file_path, s3_key):
     except Exception as e:
         print("S3 Upload Error:", e)
         return None
+
+def delete_from_s3(s3_url):
+    bucket = os.getenv("S3_BUCKET_NAME")
+    try:
+        # Correct base URL
+        url = f"https://{bucket}.s3.amazonaws.com/"
+        
+        if not s3_url.startswith(url):
+            raise ValueError("Invalid S3 URL format")
+        
+        # Extract the object key from the URL
+        s3_key = s3_url.replace(url, "")
+        
+        # Delete the object
+        s3.delete_object(Bucket=bucket, Key=s3_key)
+        return True
+    except Exception as e:
+        print("S3 Delete Error:", e)
+        return False
